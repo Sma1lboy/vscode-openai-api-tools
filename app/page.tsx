@@ -156,11 +156,15 @@ function ModelConverterTab() {
   const [convJsonInput, setConvJsonInput] = useState<string>("");
   const [convJsonOutput, setConvJsonOutput] = useState<string>("");
 
+  const [fromModel, setFromModel] = useState<string>("");
+  const [toModel, setToModel] = useState<string>("gpt-4o-mini");
+
   const handleConvertConversationJson = () => {
     try {
       const conv = JSON.parse(convJsonInput) as Conversation;
       const { snippy, ...restConv } = conv;
-      restConv.model = "gpt-4o-mini";
+      setFromModel(restConv.model ?? "None");
+      restConv.model = toModel;
       const output = JSON.stringify(restConv, null, 2);
       setConvJsonOutput(output);
     } catch (error) {
@@ -170,25 +174,40 @@ function ModelConverterTab() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row md:items-stretch md:justify-between h-[calc(100vh-200px)]">
-      <div className="flex flex-col flex-1 md:mr-2 mb-4 md:mb-0">
-        <h3 className="mb-2 text-xl">Conversation JSON Input</h3>
-        <textarea
-          value={convJsonInput}
-          onChange={(e) => setConvJsonInput(e.target.value)}
-          placeholder="Paste your conversation JSON here"
-          className="scrollbar-hide flex-1 p-3 text-base bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+    <div>
+      <div className="flex items-center justify-center mb-4 space-x-4">
+        <div className="flex items-center space-x-2">
+          <label htmlFor="fromModel">From Model:</label>
+          {fromModel.length > 0 ? fromModel : "None"}
+        </div>
+        <div className="flex items-center space-x-2">
+          <label htmlFor="toModel">To Model:</label>
+          <input
+            value={toModel}
+            onChange={(e) => setToModel(e.target.value)}
+          ></input>
+        </div>
       </div>
-      <div className="flex items-center justify-center mb-4 md:mb-0">
-        <Button onClick={handleConvertConversationJson}>Convert</Button>
-      </div>
-      <div className="flex flex-col flex-1 md:ml-2">
-        <CopyableOutputArea
-          label="Converted Conversation JSON"
-          value={convJsonOutput}
-          placeholder="The updated conversation JSON will be displayed here"
-        />
+      <div className="flex flex-col md:flex-row md:items-stretch md:justify-between h-[calc(100vh-200px)]">
+        <div className="flex flex-col flex-1 md:mr-2 mb-4 md:mb-0">
+          <h3 className="mb-2 text-xl">Conversation JSON Input</h3>
+          <textarea
+            value={convJsonInput}
+            onChange={(e) => setConvJsonInput(e.target.value)}
+            placeholder="Paste your conversation JSON here"
+            className="scrollbar-hide flex-1 p-3 text-base bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div className="flex items-center justify-center mb-4 md:mb-0">
+          <Button onClick={handleConvertConversationJson}>Convert</Button>
+        </div>
+        <div className="flex flex-col flex-1 md:ml-2">
+          <CopyableOutputArea
+            label="Converted Conversation JSON"
+            value={convJsonOutput}
+            placeholder="The updated conversation JSON will be displayed here"
+          />
+        </div>
       </div>
     </div>
   );
