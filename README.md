@@ -1,6 +1,6 @@
 # OpenAI Response Analysis Tools
 
-A collection of tools designed to help analyze and compare OpenAI API responses. This project provides utilities and interfaces for researchers and developers to better understand and evaluate OpenAI's language model outputs.
+A collection of tools designed to help analyze and compare OpenAI API response. This project provides utilities and interfaces for researchers and developers to better understand and evaluate OpenAI's language model outputs.
 
 ## Features
 
