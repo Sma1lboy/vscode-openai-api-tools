@@ -272,6 +272,168 @@ function StreamParserTab() {
   );
 }
 
+function JsonPrettierTab() {
+  const [inputJson, setInputJson] = useState<string>("");
+  const [outputJson, setOutputJson] = useState<string>("");
+  const [detectCode, setDetectCode] = useState<boolean>(true);
+  const [displayMode, setDisplayMode] = useState<"json" | "readable">(
+    "readable"
+  );
+
+  const prettifyJson = useCallback(() => {
+    try {
+      const parsedJson = JSON.parse(inputJson);
+
+      // Process the JSON recursively to handle newlines in nested string properties
+      const processObject = (obj: unknown): unknown => {
+        if (typeof obj === "string") {
+          // For strings, replace escaped newlines with actual newlines
+          let processed = obj.replace(/\\n/g, "\n");
+
+          // If detectCode is enabled, try to identify and format code snippets
+          if (
+            detectCode &&
+            processed.includes("class ") &&
+            processed.includes("{") &&
+            processed.includes("}")
+          ) {
+            // This looks like it might be a code snippet
+            processed = `\n----- CODE BLOCK START -----\n${processed}\n----- CODE BLOCK END -----\n`;
+          }
+
+          return processed;
+        } else if (Array.isArray(obj)) {
+          // Process each item in the array
+          return obj.map((item) => processObject(item));
+        } else if (obj !== null && typeof obj === "object") {
+          // Process each property in the object
+          const result: Record<string, unknown> = {};
+          for (const key in obj) {
+            if (Object.prototype.hasOwnProperty.call(obj, key)) {
+              result[key] = processObject(
+                (obj as Record<string, unknown>)[key]
+              );
+            }
+          }
+          return result;
+        }
+        return obj;
+      };
+
+      // Process the entire JSON object
+      const processedJson = processObject(parsedJson);
+
+      // Format based on display mode
+      let formattedOutput: string;
+
+      if (displayMode === "json") {
+        // Standard JSON formatting with escaped newlines
+        formattedOutput = JSON.stringify(processedJson, null, 2);
+      } else {
+        // Custom formatting for readability with actual newlines
+        formattedOutput = formatReadableJson(processedJson);
+      }
+
+      setOutputJson(formattedOutput);
+    } catch (error) {
+      console.error("Failed to parse JSON:", error);
+      setOutputJson(`Error parsing JSON: ${(error as Error).message}`);
+    }
+  }, [inputJson, detectCode, displayMode]);
+
+  // Custom formatter that preserves newlines in string values
+  const formatReadableJson = (obj: unknown, indent = 0): string => {
+    const space = "  ".repeat(indent);
+
+    if (obj === null) return "null";
+    if (typeof obj === "undefined") return "undefined";
+    if (typeof obj === "number" || typeof obj === "boolean") return String(obj);
+
+    if (typeof obj === "string") {
+      // Keep newlines as-is without escaping
+      return `"${obj}"`;
+    }
+
+    if (Array.isArray(obj)) {
+      if (obj.length === 0) return "[]";
+
+      const items = obj
+        .map((item) => `${space}  ${formatReadableJson(item, indent + 1)}`)
+        .join(",\n");
+
+      return `[\n${items}\n${space}]`;
+    }
+
+    if (typeof obj === "object") {
+      const entries = Object.entries(obj);
+      if (entries.length === 0) return "{}";
+
+      const props = entries
+        .map(
+          ([key, value]) =>
+            `${space}  "${key}": ${formatReadableJson(value, indent + 1)}`
+        )
+        .join(",\n");
+
+      return `{\n${props}\n${space}}`;
+    }
+
+    return String(obj);
+  };
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-200px)]">
+      <div className="flex mb-4">
+        <div className="flex items-center mr-4">
+          <input
+            type="checkbox"
+            id="detectCode"
+            checked={detectCode}
+            onChange={(e) => setDetectCode(e.target.checked)}
+            className="mr-2"
+          />
+          <label htmlFor="detectCode">Detect and highlight code blocks</label>
+        </div>
+        <div className="flex items-center ml-4">
+          <select
+            id="displayMode"
+            value={displayMode}
+            onChange={(e) =>
+              setDisplayMode(e.target.value as "json" | "readable")
+            }
+            className="p-1 border rounded"
+          >
+            <option value="readable">Readable (with actual newlines)</option>
+            <option value="json">Valid JSON</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row md:items-stretch md:justify-between flex-grow">
+        <div className="flex flex-col flex-1 md:mr-2 mb-4 md:mb-0">
+          <h3 className="mb-2 text-xl">JSON Input</h3>
+          <textarea
+            value={inputJson}
+            onChange={(e) => setInputJson(e.target.value)}
+            placeholder="Paste your JSON here"
+            className="scrollbar-hide flex-1 p-3 text-base bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div className="flex items-center justify-center mb-4 md:mb-0">
+          <Button onClick={prettifyJson}>Prettify</Button>
+        </div>
+        <div className="flex flex-col flex-1 md:ml-2">
+          <CopyableOutputArea
+            label="Prettified JSON"
+            value={outputJson}
+            placeholder="The prettified JSON will be displayed here"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   return (
     <div className="min-h-screen p-5 font-sans text-black dark:text-white bg-gray-50 dark:bg-gray-800">
@@ -295,6 +457,12 @@ export default function Home() {
           <TabsTrigger value="streamParser" className="px-4 py-2">
             Stream Parser
           </TabsTrigger>
+          <TabsTrigger value="jsonPrettier" className="px-4 py-2">
+            JSON Prettier
+          </TabsTrigger>
+          <TabsTrigger value="commingSoon" className="px-4 py-2">
+            Coming Soon
+          </TabsTrigger>
           <TabsTrigger value="reserved" className="px-4 py-2">
             Reserved
           </TabsTrigger>
@@ -308,6 +476,9 @@ export default function Home() {
         </TabsContent>
         <TabsContent value="streamParser">
           <StreamParserTab />
+        </TabsContent>
+        <TabsContent value="jsonPrettier">
+          <JsonPrettierTab />
         </TabsContent>
         <TabsContent value="reserved">
           <div className="text-center py-20">
